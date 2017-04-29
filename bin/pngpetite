@@ -1,0 +1,312 @@
+#!/bin/bash
+
+## ----------------------------------------------------------------------------
+## A script based on Crunch by Christopher Simpkins adapted for command line
+## junkies.
+## ----------------------------------------------------------------------------
+
+## ----------------------------------------------------------------------------
+## Author:        Urs Roesch <github@bun.ch>
+## License:       MIT
+## Requires:      bc, pngquant, zopflipng
+## ----------------------------------------------------------------------------
+
+## ----------------------------------------------------------------------------
+## Settings
+## ----------------------------------------------------------------------------
+set -o nounset
+set -o errexit
+
+## ----------------------------------------------------------------------------
+## Globals
+## ----------------------------------------------------------------------------
+
+SCRIPT=${0##*/}
+SUFFIX="-${SCRIPT}.png"
+REPLACE=false
+PNGQUANT_OPTS="--quality=80-98 --skip-if-larger --force"
+ZOPFLI_OPTS='-m -y --lossy_8bit --lossy_transparent'
+STAT_OPTS='--printf %s'
+QUIET=false
+STATS=true
+DEST_DIR=""
+COL=13
+LINE=$(eval printf -- "-%.0s" {1..${COL}})
+FORMAT_HEADER="%${COL}s %${COL}s %${COL}s %${COL}s %${COL}s %${COL}s  %s\n"
+FORMAT_STATS="%${COL}.3f %${COL}.3f %${COL}.3f %${COL}.3f %${COL}.3f %${COL}.3f  %s\n"
+HEADER_PRINTED=false
+FIELDS_HEADER=(
+  "Original (KB)"
+  "Stage1 (KB)"
+  "Final (KB)"
+  "Saved (KB)"
+  "Saved %"
+  "Time (sec)"
+  "Image Name"
+)
+FILES=()
+DEPENDENCIES=(
+  pngquant
+  zopflipng
+  bc
+)
+
+## ----------------------------------------------------------------------------
+## Functions
+## ----------------------------------------------------------------------------
+check_dependencies() {
+  for dependency in ${DEPENDENCIES[*]}; do
+    if ! which ${dependency} >/dev/null 2>&1; then
+      echo "Missing dependency '${dependency}'" 1>&2
+      echo "Please install first!" 1>&2
+      exit 64
+    fi
+  done
+}
+
+## ----------------------------------------------------------------------------
+
+usage() {
+  local exit_code=$1; shift
+  cat << USAGE
+
+  Usage:
+    ${SCRIPT} <options> <png-image> ...
+
+  Options:
+    -h | --help         This message
+    -r | --replace      Replace file with processed one
+                        Implies -d
+    -d | --dest <path>  Place images in given path
+                        Implies -r
+    -S | --no-stats     Don't print stats
+    -q | --quiet        Don't print stats and progress
+
+  Description:
+    Insane(ly slow but wicked good) PNG image optimization
+    Built with pngquant and zopflipng optimizers
+
+  Copyright:
+    ======================================================
+    Copyright 2016 Christopher Simpkins
+    Copyright 2017 Urs Roesch (Linux version)
+    MIT License
+    Based on: //github.com/chrissimpkins/Crunch
+    ======================================================
+
+USAGE
+  exit ${exit_code}
+}
+
+## ----------------------------------------------------------------------------
+
+parse_opts() {
+  [[ $# -eq 0 ]] && usage 1
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      -r|--replace)  REPLACE=true;;
+      -h|--help)     usage 0;;
+      -d|--dest)     shift; DEST_DIR=$1;;
+      -q|--quiet)    QUIET=true; STATS=false;;
+      -S|--no-stats) STATS=false;;
+      *)             FILES=( "${FILES[@]-}" "$1" )
+    esac
+    shift
+  done
+}
+
+## ----------------------------------------------------------------------------
+
+evaluate_opts() {
+  if [[ ${REPLACE} == true && -n ${DEST_DIR} ]]; then
+    usage 1
+  else
+    return 0
+  fi
+}
+
+## ----------------------------------------------------------------------------
+
+check_pid() {
+  local pid="$1"
+  ps -p ${pid} &>/dev/null
+}
+
+## ----------------------------------------------------------------------------
+
+spinner() {
+  local image="$1"; shift;
+  local operation="$1"; shift;
+  local pid="$1"; shift;
+  while true; do
+    for i in '—' '\' '|' '/'; do
+      check_pid "${pid}" || return 0
+      [[ ${QUIET} == true ]] && sleep 1 && continue
+      printf "Processing image '%s' -> %s  %s\n" \
+        "${image}" \
+        "${operation}" \
+        "$i";
+      sleep 1;
+      printf '\033[A'
+    done;
+  done
+}
+
+## ----------------------------------------------------------------------------
+
+get_size() {
+  local file=$1
+  stat ${STAT_OPTS} ${file} 2>/dev/null || echo "N/A"
+}
+
+## ----------------------------------------------------------------------------
+
+calc_size() {
+  local size="$1"; shift;
+  bc -l <<< "${size}/1024"
+}
+
+## ----------------------------------------------------------------------------
+
+run_pngquant() {
+  local input="$1"; shift;
+  local output="$1"; shift;
+  ## pngquant will fail if the resulting png is not smaller
+  ## in that case we just copy the file
+  pngquant ${PNGQUANT_OPTS} --output "${output}" "${input}" >/dev/null ||
+    cp "${image}" "${output}"
+}
+
+
+## ----------------------------------------------------------------------------
+
+run_zopflipng() {
+  local input="$1"; shift;
+  local output="${input}-${RANDOM}"
+  zopflipng ${ZOPFLI_OPTS} "${input}" "${output}" >/dev/null &&
+    mv "${output}" "${input}" ||
+    rm "${output}"
+}
+
+## ----------------------------------------------------------------------------
+
+replace_file() {
+  local original_file="$1"; shift
+  local crushed_file="$1"; shift
+  [[ ${REPLACE} == false ]] && return
+  mv "${crushed_file}" "${original_file}"
+}
+
+## ----------------------------------------------------------------------------
+
+check_image_type() {
+  local image="$1"; shift;
+  case "${image##*.}" in
+    [Pp][Nn][Gg])
+      return 0;;
+    *)
+      echo "ALERT:Unable to Process File"
+      echo "'${image}' does not appear to be a png file"
+      return 1;;
+  esac
+}
+
+## ----------------------------------------------------------------------------
+
+set_working_image() {
+  local image="$1"; shift;
+  if [[ -n ${DEST_DIR} ]]; then
+    echo "${DEST_DIR}/${image##*/}"
+  else
+    echo "${image%%.*}${SUFFIX}"
+  fi
+}
+
+## ----------------------------------------------------------------------------
+
+create_scaffold() {
+  [[ -z ${DEST_DIR} ]] && return
+  if [[ ! -d ${DEST_DIR} ]]; then
+    if ! mkdir -p ${DEST_DIR} 2>/dev/null; then
+      echo "Failed to create directory '${DEST_DIR}'!"
+      echo "Giving up"
+      exit 128
+    fi
+  else
+    echo "Directory '${DEST_DIR}' already exists!"
+    echo "Giving up"
+    exit 129
+  fi
+}
+
+## ----------------------------------------------------------------------------
+
+print_header() {
+  [[ ${HEADER_PRINTED} == true ]] && return
+  printf "${FORMAT_HEADER}" "${FIELDS_HEADER[@]}"
+  printf "${FORMAT_HEADER}" \
+  $(for x in "${FIELDS_HEADER[@]}"; do echo "${LINE}"; done)
+  HEADER_PRINTED=true
+}
+
+## ----------------------------------------------------------------------------
+
+print_stats() {
+  [[ ${STATS} == false ]] && return
+  local image="$1"; shift;
+  local pre_size="$1"; shift;
+  local stage1_size="$1"; shift;
+  local final_size="$1"; shift
+  local time="$1"; shift
+  local saved_size="$(bc -l <<< "${pre_size} - ${final_size}")"
+  local saved_percent="$(bc -l <<< "100 * ${saved_size} / ${pre_size}")"
+  print_header
+  printf "${FORMAT_STATS}" \
+    "$(calc_size ${pre_size})" \
+    "$(calc_size ${stage1_size})" \
+    "$(calc_size ${final_size})" \
+    "$(calc_size ${saved_size})" \
+    "${saved_percent}" \
+    "${time}" \
+    "${image}"
+}
+
+## ----------------------------------------------------------------------------
+
+process_images() {
+  local files=( "$@" )
+  for image in "${files[@]}"; do
+    check_image_type "${image}" || continue
+
+    working_image=$(set_working_image "${image}")
+    # get the pre compression size of the image file
+    pre_size=$(get_size "${image}")
+
+    ## pngquant section
+    start=$(date +%s.%N)
+    run_pngquant "${image}" "${working_image}" &
+    spinner "${image}" "stage1: pngquant" $!
+    stage1_size=$(get_size "${working_image}")
+
+    ## zopfli section
+    run_zopflipng "${working_image}" &
+    spinner "${image}" "stage2: zopflipng" $!
+    time=$(bc -l <<< "$(date +%s.%N) - ${start}")
+    final_size=$(get_size "${working_image}")
+    # get the post compression size of the image file
+
+    print_stats "${image}" "${pre_size}" "${stage1_size}" \
+      "${final_size}" "${time}"
+    replace_file "${image}" "${working_image}"
+  done
+}
+
+## ----------------------------------------------------------------------------
+## Main
+## ----------------------------------------------------------------------------
+
+check_dependencies
+parse_opts "$@"
+evaluate_opts
+create_scaffold
+process_images "${FILES[@]:1}"

@@ -1,0 +1,79 @@
+= {Title}
+:title:     pngpetite
+:author:    Urs Roesch
+:firstname: Urs
+:lastname:  Roesch
+:email:     github@bun.ch
+:revnumber: 0.1
+:keywords:  PNG, size reduction, image processing, shrink, crush, web images
+:toc:       left
+:icons:     font
+
+A script to reduce the size of PNG images significantly. The code is based on
+https://github.com/chrissimpkins/Crunch[Crush] by Christopher Simpkins and has
+been adapted to Linux by refactoring it. As the code base shows significant
+differences the name has also been changed.
+
+[[pngpetite]]
+== pngpetite
+
+[[prerequisites]]
+=== Prerequisites
+* bc
+* https://pngquant.org/[pngquant]
+* https://github.com/google/zopfli[zopflipng]
+
+[[usage]]
+=== Usage
+
+----
+Usage:
+  pngpetite <options> <png-image> ...
+
+Options:
+  -h | --help         This message
+  -r | --replace      Replace file with processed one
+                      Implies -d
+  -d | --dest <path>  Place images in given path
+                      Implies -r
+  -S | --no-stats     Don't print stats
+  -q | --quiet        Don't print stats and progress
+----
+
+[[examples]]
+=== Examples
+
+.Default usage. Yields `happy-sun-pngpetite.png`
+----
+pngpetit happy-sun.png
+Original (KB)   Stage1 (KB)    Final (KB)    Saved (KB)       Saved %    Time (sec)  Image Name
+------------- ------------- ------------- ------------- ------------- -------------  -------------
+       25.639        16.186        13.857        11.781        45.951        22.204  happy-sun.png
+----
+
+
+.Replace existing image. Yields `happy-sun.png`
+----
+pngpetit --replace happy-sun.png
+Original (KB)   Stage1 (KB)    Final (KB)    Saved (KB)       Saved %    Time (sec)  Image Name
+------------- ------------- ------------- ------------- ------------- -------------  -------------
+       25.639        16.186        13.857        11.781        45.951        22.204  happy-sun.png
+----
+
+.Place processed image in new directory. Yields `pngpetite/happy-sun.png`
+----
+pngpetit --dest pngpetite happy-sun.png
+Original (KB)   Stage1 (KB)    Final (KB)    Saved (KB)       Saved %    Time (sec)  Image Name
+------------- ------------- ------------- ------------- ------------- -------------  -------------
+       25.639        16.186        13.857        11.781        45.951        22.204  happy-sun.png
+----
+
+.Process all PNG images in directory `originals` and place them in directory `pngpetite`.
+----
+pngpetite --dest pngpetite original/*png
+Original (KB)   Stage1 (KB)    Final (KB)    Saved (KB)       Saved %    Time (sec)  Image Name
+------------- ------------- ------------- ------------- ------------- -------------  -------------
+      695.867       695.867       658.104        37.764         5.427        20.190  original/beach.png
+       25.639        16.186        13.857        11.781        45.951        22.197  original/happy-sun.png
+       54.101        29.885        27.244        26.856        49.642         8.097  original/shinkansen-n700.png
+----
