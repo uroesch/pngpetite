@@ -1,41 +1,42 @@
 #!/bin/bash
 
-## ----------------------------------------------------------------------------
-## A script based on Crunch by Christopher Simpkins adapted for command line
-## junkies.
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# A script based on Crunch by Christopher Simpkins adapted for command line
+# junkies.
+# -----------------------------------------------------------------------------
 
-## ----------------------------------------------------------------------------
-## Author:        Urs Roesch <github@bun.ch>
-## License:       MIT
-## Requires:      bc, pngquant, zopflipng
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Author:        Urs Roesch <github@bun.ch>
+# License:       MIT
+# Requires:      bc, pngquant, zopflipng
+# -----------------------------------------------------------------------------
 
-## ----------------------------------------------------------------------------
-## Settings
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Settings
+# -----------------------------------------------------------------------------
 set -o nounset
 set -o errexit
+set -o pipefail
 
-## ----------------------------------------------------------------------------
-## Globals
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Globals
+# -----------------------------------------------------------------------------
 
-SCRIPT=${0##*/}
-SUFFIX="-${SCRIPT}.png"
-REPLACE=false
-PNGQUANT_OPTS="--quality=80-98 --skip-if-larger --force"
-ZOPFLI_OPTS='-m -y --lossy_8bit --lossy_transparent'
-STAT_OPTS='--printf %s'
-QUIET=false
-STATS=true
-DEST_DIR=""
-COL=13
-LINE=$(eval printf -- "-%.0s" {1..${COL}})
-FORMAT_HEADER="%${COL}s %${COL}s %${COL}s %${COL}s %${COL}s %${COL}s  %s\n"
-FORMAT_STATS="%${COL}.3f %${COL}.3f %${COL}.3f %${COL}.3f %${COL}.3f %${COL}.3f  %s\n"
-HEADER_PRINTED=false
-FIELDS_HEADER=(
+declare -r VERSION=0.2.0
+declare -r SCRIPT=${0##*/}
+declare -r SUFFIX="-${SCRIPT}.png"
+declare -r PNGQUANT_OPTS="--quality=80-98 --skip-if-larger --force"
+declare -r ZOPFLI_OPTS='-m -y --lossy_8bit --lossy_transparent'
+declare -r STAT_OPTS='--printf %s'
+declare -r COLUMN_WIDTH=13
+declare -r LINE=$(eval printf -- "-%.0s" {1..${COLUMN_WIDTH}})
+declare -g HEADER_PRINTED=false
+declare -g REPLACE=false
+declare -g QUIET=false
+declare -g PRINT_STATS=true
+declare -g DEST_DIR=""
+declare -a FILES=()
+declare -a FIELDS_HEADER=(
   "Original (KB)"
   "Stage1 (KB)"
   "Final (KB)"
@@ -44,17 +45,16 @@ FIELDS_HEADER=(
   "Time (sec)"
   "Image Name"
 )
-FILES=()
-DEPENDENCIES=(
+declare -a DEPENDENCIES=(
   pngquant
   zopflipng
   bc
 )
 
-## ----------------------------------------------------------------------------
-## Functions
-## ----------------------------------------------------------------------------
-check_dependencies() {
+# -----------------------------------------------------------------------------
+# Functions
+# -----------------------------------------------------------------------------
+function check_dependencies() {
   for dependency in ${DEPENDENCIES[*]}; do
     if ! which ${dependency} >/dev/null 2>&1; then
       echo "Missing dependency '${dependency}'" 1>&2
@@ -64,10 +64,10 @@ check_dependencies() {
   done
 }
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-usage() {
-  local exit_code=$1; shift
+function usage() {
+  local exit_code=${1:-1}; shift
   cat << USAGE
 
   Usage:
@@ -81,43 +81,49 @@ usage() {
                         Implies -r
     -S | --no-stats     Don't print stats
     -q | --quiet        Don't print stats and progress
+    -V | --version      Print version and exit
 
   Description:
     Insane(ly slow but wicked good) PNG image optimization
     Built with pngquant and zopflipng optimizers
 
-  Copyright:
-    ======================================================
-    Copyright 2016 Christopher Simpkins
-    Copyright 2017 Urs Roesch (Linux version)
-    MIT License
-    Based on: //github.com/chrissimpkins/Crunch
-    ======================================================
-
 USAGE
   exit ${exit_code}
 }
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-parse_opts() {
+function parse_options() {
   [[ $# -eq 0 ]] && usage 1
-  while [[ $# -gt 0 ]]; do
-    case $1 in
-      -r|--replace)  REPLACE=true;;
-      -h|--help)     usage 0;;
-      -d|--dest)     shift; DEST_DIR=$1;;
-      -q|--quiet)    QUIET=true; STATS=false;;
-      -S|--no-stats) STATS=false;;
-      *)             FILES=( "${FILES[@]-}" "$1" )
+  while [[ ${#} -gt 0 ]]; do
+    case ${1} in
+    -r|--replace)  REPLACE=true;;
+    -h|--help)     usage 0;;
+    -d|--dest)     shift; DEST_DIR=${1};;
+    -q|--quiet)    QUIET=true; PRINT_STATS=false;;
+    -S|--no-stats) PRINT_STATS=false;;
+    -V|--version)  print_version;;
+    *)             FILES=( "${FILES[@]-}" "${1}" )
     esac
     shift
   done
 }
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-evaluate_opts() {
+function print_version() { 
+  cat << VERSION | sed 's/^  //g'
+  ${SCRIPT} version ${VERSION} MIT License
+
+  Copyright 2016 Christopher Simpkins //github.com/chrissimpkins/Crunch
+  Copyright 2017-2020 Urs Roesch (Linux version) //github.com/uroesch/pngpetite
+VERSION
+  exit 0
+}
+
+# -----------------------------------------------------------------------------
+
+function evaluate_opts() {
   if [[ ${REPLACE} == true && -n ${DEST_DIR} ]]; then
     usage 1
   else
@@ -125,19 +131,19 @@ evaluate_opts() {
   fi
 }
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-check_pid() {
-  local pid="$1"
+function check_pid() {
+  local pid="${1}"
   ps -p ${pid} &>/dev/null
 }
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-spinner() {
-  local image="$1"; shift;
-  local operation="$1"; shift;
-  local pid="$1"; shift;
+function spinner() {
+  local image="${1}"; shift;
+  local operation="${1}"; shift;
+  local pid="${1}"; shift;
   while true; do
     for i in '—' '\' '|' '/'; do
       check_pid "${pid}" || return 0
@@ -152,25 +158,25 @@ spinner() {
   done
 }
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-get_size() {
-  local file=$1
-  stat ${STAT_OPTS} ${file} 2>/dev/null || echo "N/A"
+function get_size() {
+  local file="${1}"
+  stat ${STAT_OPTS} "${file}" 2>/dev/null || echo "N/A"
 }
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-calc_size() {
-  local size="$1"; shift;
+function calc_size() {
+  local size="${1}"; shift;
   bc -l <<< "${size}/1024"
 }
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-run_pngquant() {
-  local input="$1"; shift;
-  local output="$1"; shift;
+function run_pngquant() {
+  local input="${1}"; shift;
+  local output="${1}"; shift;
   ## pngquant will fail if the resulting png is not smaller
   ## in that case we just copy the file
   pngquant ${PNGQUANT_OPTS} --output "${output}" "${input}" >/dev/null ||
@@ -178,43 +184,43 @@ run_pngquant() {
 }
 
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-run_zopflipng() {
-  local input="$1"; shift;
+function run_zopflipng() {
+  local input="${1}"; shift;
   local output="${input}-${RANDOM}"
   zopflipng ${ZOPFLI_OPTS} "${input}" "${output}" >/dev/null &&
     mv "${output}" "${input}" ||
     rm "${output}"
 }
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-replace_file() {
-  local original_file="$1"; shift
-  local crushed_file="$1"; shift
+function replace_file() {
+  local original_file="${1}"; shift
+  local crushed_file="${1}"; shift
   [[ ${REPLACE} == false ]] && return
   mv "${crushed_file}" "${original_file}"
 }
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-check_image_type() {
-  local image="$1"; shift;
+function check_image_type() {
+  local image="${1}"; shift;
   case "${image##*.}" in
-    [Pp][Nn][Gg])
-      return 0;;
-    *)
-      echo "ALERT:Unable to Process File"
-      echo "'${image}' does not appear to be a png file"
-      return 1;;
+  [Pp][Nn][Gg])
+    return 0;;
+  *)
+    echo "ALERT:Unable to Process File"
+    echo "'${image}' does not appear to be a png file"
+    return 1;;
   esac
 }
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-set_working_image() {
-  local image="$1"; shift;
+function set_working_image() {
+  local image="${1}"; shift;
   if [[ -n ${DEST_DIR} ]]; then
     echo "${DEST_DIR}/${image##*/}"
   else
@@ -222,9 +228,9 @@ set_working_image() {
   fi
 }
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-create_scaffold() {
+function create_scaffold() {
   [[ -z ${DEST_DIR} ]] && return
   if [[ ! -d ${DEST_DIR} ]]; then
     if ! mkdir -p ${DEST_DIR} 2>/dev/null; then
@@ -239,29 +245,44 @@ create_scaffold() {
   fi
 }
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-print_header() {
+function format() {
+  local type=${1}; shift;
+  local item=""
+  case ${type} in
+  header) item="%${COLUMN_WIDTH}s";;
+  stats)  item="%${COLUMN_WIDTH}.3f";;
+  esac
+  for _i in "${FIELDS_HEADER[@]:1}"; do 
+    echo -n "${item} "
+  done
+  echo "%s\\n"
+}
+
+# -----------------------------------------------------------------------------
+
+function print_header() {
   [[ ${HEADER_PRINTED} == true ]] && return
-  printf "${FORMAT_HEADER}" "${FIELDS_HEADER[@]}"
-  printf "${FORMAT_HEADER}" \
-  $(for x in "${FIELDS_HEADER[@]}"; do echo "${LINE}"; done)
+  printf "$(format header)" "${FIELDS_HEADER[@]}"
+  printf "$(format header)" \
+    $(for x in "${FIELDS_HEADER[@]}"; do echo "${LINE}"; done)
   HEADER_PRINTED=true
 }
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-print_stats() {
-  [[ ${STATS} == false ]] && return
+function print_stats() {
+  [[ ${PRINT_STATS} == false ]] && return
   local image="$1"; shift;
-  local pre_size="$1"; shift;
-  local stage1_size="$1"; shift;
-  local final_size="$1"; shift
-  local time="$1"; shift
+  local pre_size="${1}"; shift;
+  local stage1_size="${1}"; shift;
+  local final_size="${1}"; shift
+  local time="${1}"; shift
   local saved_size="$(bc -l <<< "${pre_size} - ${final_size}")"
   local saved_percent="$(bc -l <<< "100 * ${saved_size} / ${pre_size}")"
   print_header
-  printf "${FORMAT_STATS}" \
+  printf "$(format stats)" \
     "$(calc_size ${pre_size})" \
     "$(calc_size ${stage1_size})" \
     "$(calc_size ${final_size})" \
@@ -271,10 +292,10 @@ print_stats() {
     "${image}"
 }
 
-## ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-process_images() {
-  local files=( "$@" )
+function process_images() {
+  local files=( "${@}" )
   for image in "${files[@]}"; do
     check_image_type "${image}" || continue
 
@@ -301,12 +322,11 @@ process_images() {
   done
 }
 
-## ----------------------------------------------------------------------------
-## Main
-## ----------------------------------------------------------------------------
-
-check_dependencies
-parse_opts "$@"
+# -----------------------------------------------------------------------------
+# Main
+# -----------------------------------------------------------------------------
+parse_options "${@}"
 evaluate_opts
+check_dependencies
 create_scaffold
 process_images "${FILES[@]:1}"
