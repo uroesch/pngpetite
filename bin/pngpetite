@@ -22,7 +22,7 @@ set -o pipefail
 # Globals
 # -----------------------------------------------------------------------------
 
-declare -r VERSION=0.2.0
+declare -r VERSION=0.2.1
 declare -r SCRIPT=${0##*/}
 declare -r SUFFIX="-${SCRIPT}.png"
 declare -r PNGQUANT_OPTS="--quality=80-98 --skip-if-larger --force"
@@ -224,7 +224,7 @@ function set_working_image() {
   if [[ -n ${DEST_DIR} ]]; then
     echo "${DEST_DIR}/${image##*/}"
   else
-    echo "${image%%.*}${SUFFIX}"
+    echo "${image%.*}${SUFFIX}"
   fi
 }
 
