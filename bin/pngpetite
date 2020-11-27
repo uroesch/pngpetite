@@ -22,7 +22,7 @@ set -o pipefail
 # Globals
 # -----------------------------------------------------------------------------
 
-declare -r VERSION=0.2.1
+declare -r VERSION=0.2.2
 declare -r SCRIPT=${0##*/}
 declare -r SUFFIX="-${SCRIPT}.png"
 declare -r PNGQUANT_OPTS="--quality=80-98 --skip-if-larger --force"
@@ -48,6 +48,7 @@ declare -a FIELDS_HEADER=(
 declare -a DEPENDENCIES=(
   pngquant
   zopflipng
+  file
   bc
 )
 
@@ -111,7 +112,7 @@ function parse_options() {
 
 # -----------------------------------------------------------------------------
 
-function print_version() { 
+function print_version() {
   cat << VERSION | sed 's/^  //g'
   ${SCRIPT} version ${VERSION} MIT License
 
@@ -207,14 +208,11 @@ function replace_file() {
 
 function check_image_type() {
   local image="${1}"; shift;
-  case "${image##*.}" in
-  [Pp][Nn][Gg])
-    return 0;;
-  *)
-    echo "ALERT:Unable to Process File"
-    echo "'${image}' does not appear to be a png file"
-    return 1;;
-  esac
+  local status=true
+  [[ $(file "${image}") =~ 'PNG image data' ]] && return 0
+  echo "ALERT: Unable to Process File"
+  echo "'${image}' does not appear to be a png file"
+  return 1
 }
 
 # -----------------------------------------------------------------------------
@@ -254,7 +252,7 @@ function format() {
   header) item="%${COLUMN_WIDTH}s";;
   stats)  item="%${COLUMN_WIDTH}.3f";;
   esac
-  for _i in "${FIELDS_HEADER[@]:1}"; do 
+  for _i in "${FIELDS_HEADER[@]:1}"; do
     echo -n "${item} "
   done
   echo "%s\\n"
