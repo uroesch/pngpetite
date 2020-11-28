@@ -22,9 +22,11 @@ set -o pipefail
 # Globals
 # -----------------------------------------------------------------------------
 
-declare -r VERSION=0.2.3
+declare -r VERSION=0.3.0
 declare -r SCRIPT=${0##*/}
 declare -r SUFFIX="-${SCRIPT}.png"
+declare -r S1_SUFFIX="-${RANDOM}"
+declare -r S2_SUFFIX="-${RANDOM}"
 declare -r PNGQUANT_OPTS="--quality=80-98 --skip-if-larger --force"
 declare -r ZOPFLI_OPTS='-m -y --lossy_8bit --lossy_transparent'
 declare -r STAT_OPTS='--printf %s'
@@ -162,8 +164,20 @@ function spinner() {
 
 # -----------------------------------------------------------------------------
 
+function wait_for_file() {
+  local file="${1}"
+  [[ -f /.dockerenv ]] || return 0
+  # On docker the file write is a bit lagging hence the loop
+  while [[ ! -f ${file} ]]; do
+    sleep 0.1
+  done
+}
+
+# -----------------------------------------------------------------------------
+
 function get_size() {
   local file="${1}"
+  wait_for_file "${file}"
   stat ${STAT_OPTS} "${file}" 2>/dev/null || echo "N/A"
 }
 
@@ -190,10 +204,9 @@ function run_pngquant() {
 
 function run_zopflipng() {
   local input="${1}"; shift;
-  local output="${input}-${RANDOM}"
+  local output="${input%${S1_SUFFIX}}${S2_SUFFIX}"
   zopflipng ${ZOPFLI_OPTS} "${input}" "${output}" >/dev/null &&
-    mv "${output}" "${input}" ||
-    rm "${output}"
+    rm "${input}"
 }
 
 # -----------------------------------------------------------------------------
@@ -304,15 +317,16 @@ function process_images() {
 
     ## pngquant section
     start=$(date +%s.%N)
-    run_pngquant "${image}" "${working_image}" &
+    run_pngquant "${image}" "${working_image}${S1_SUFFIX}" &
     spinner "${image}" "stage1: pngquant" $!
-    stage1_size=$(get_size "${working_image}")
+    stage1_size=$(get_size "${working_image}${S1_SUFFIX}")
 
     ## zopfli section
-    run_zopflipng "${working_image}" &
+    run_zopflipng "${working_image}${S1_SUFFIX}" &
     spinner "${image}" "stage2: zopflipng" $!
     time=$(bc -l <<< "$(date +%s.%N) - ${start}")
-    final_size=$(get_size "${working_image}")
+    final_size=$(get_size "${working_image}${S2_SUFFIX}")
+    mv ${working_image}${S2_SUFFIX} ${working_image}
     # get the post compression size of the image file
 
     print_stats "${image}" "${pre_size}" "${stage1_size}" \
