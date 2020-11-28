@@ -22,7 +22,7 @@ set -o pipefail
 # Globals
 # -----------------------------------------------------------------------------
 
-declare -r VERSION=0.3.0
+declare -r VERSION=0.3.1
 declare -r SCRIPT=${0##*/}
 declare -r SUFFIX="-${SCRIPT}.png"
 declare -r S1_SUFFIX="-${RANDOM}"
@@ -164,9 +164,14 @@ function spinner() {
 
 # -----------------------------------------------------------------------------
 
+function inside_docker() {
+  [[ -f /.dockerenv ]]
+}
+# -----------------------------------------------------------------------------
+
 function wait_for_file() {
   local file="${1}"
-  [[ -f /.dockerenv ]] || return 0
+  inside_docker || return 0
   # On docker the file write is a bit lagging hence the loop
   while [[ ! -f ${file} ]]; do
     sleep 0.1
@@ -325,9 +330,12 @@ function process_images() {
     run_zopflipng "${working_image}${S1_SUFFIX}" &
     spinner "${image}" "stage2: zopflipng" $!
     time=$(bc -l <<< "$(date +%s.%N) - ${start}")
-    final_size=$(get_size "${working_image}${S2_SUFFIX}")
-    mv ${working_image}${S2_SUFFIX} ${working_image}
     # get the post compression size of the image file
+    final_size=$(get_size "${working_image}${S2_SUFFIX}")
+
+    # put final image into place and change permission if inside docker
+    mv "${working_image}${S2_SUFFIX}" "${working_image}"
+    inside_docker && chown --reference="${image}" "${working_image}"
 
     print_stats "${image}" "${pre_size}" "${stage1_size}" \
       "${final_size}" "${time}"
