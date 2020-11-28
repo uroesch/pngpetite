@@ -16,7 +16,9 @@ function run_pngpetite() {
   local png=${1}; shift;
   local dir=${1:-${HOME}/tmp/pngpetite/${RANDOM}}
   local bindir=${BATS_TEST_DIRNAME}/../bin
-
-  run ${bindir}/pngpetite -d "${dir}" "${png}"
-  [[ -f ${dir}/${png##*/} ]] || echo "${output}"
+  
+  run ${bindir}/pngpetite --quiet --dest "${dir}" "${png}"
+  echo ${output}
+  (( ${status} != 0 )) && return ${status}
+  [[ -f ${dir}/${png##*/} ]] && return 0 || return 1
 }
