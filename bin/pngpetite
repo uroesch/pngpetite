@@ -22,7 +22,7 @@ set -o pipefail
 # Globals
 # -----------------------------------------------------------------------------
 
-declare -r VERSION=0.2.2
+declare -r VERSION=0.2.3
 declare -r SCRIPT=${0##*/}
 declare -r SUFFIX="-${SCRIPT}.png"
 declare -r PNGQUANT_OPTS="--quality=80-98 --skip-if-larger --force"
@@ -95,7 +95,7 @@ USAGE
 # -----------------------------------------------------------------------------
 
 function parse_options() {
-  [[ $# -eq 0 ]] && usage 1
+  [[ $# -eq 0 ]] && usage 11
   while [[ ${#} -gt 0 ]]; do
     case ${1} in
     -r|--replace)  REPLACE=true;;
@@ -104,6 +104,7 @@ function parse_options() {
     -q|--quiet)    QUIET=true; PRINT_STATS=false;;
     -S|--no-stats) PRINT_STATS=false;;
     -V|--version)  print_version;;
+    -*)            usage 12;;
     *)             FILES=( "${FILES[@]-}" "${1}" )
     esac
     shift
@@ -209,7 +210,7 @@ function replace_file() {
 function check_image_type() {
   local image="${1}"; shift;
   local status=true
-  [[ $(file "${image}") =~ 'PNG image data' ]] && return 0
+  [[ $(file -- "${image}") =~ 'PNG image data' ]] && return 0
   echo "ALERT: Unable to Process File"
   echo "'${image}' does not appear to be a png file"
   return 1
