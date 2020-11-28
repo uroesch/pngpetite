@@ -15,13 +15,15 @@ on:
 
 jobs:
   bats-unit-tests:
-    timeout-minutes: 90
+    timeout-minutes: 10
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
       matrix:
         os:
         - ubuntu-20.04
+        - ubuntu-18.04
+        - ubuntu-16.04
 
     steps:
     - name: Install dependencies
@@ -32,6 +34,11 @@ jobs:
           zopfli \
           bc \
           file
+    - name: Install zopflipng
+      if: matrix.os == 'ubuntu-16.04'
+      run: |
+        curl -JLO https://github.com/uroesch/linux-packages/raw/master/xenial/z/zopflipng_1.0.1-1_amd64.deb
+        sudo apt -y install ./zopflipng_1.0.1-1_amd64.deb
 
     - name: Checkout repository
       uses: actions/checkout@v2
