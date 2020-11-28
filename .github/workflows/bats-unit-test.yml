@@ -1,0 +1,40 @@
+# -----------------------------------------------------------------------------
+# Bats unit test for shell scripts
+# Author: Urs Roesch https://github.com/uroesch
+# Version: 0.1.0
+# -----------------------------------------------------------------------------
+name: bats-unit-tests
+
+on:
+  push:
+    branches:
+    - workflow/*
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  bats-unit-tests:
+    timeout-minutes: 90
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os:
+        - ubuntu-20.04
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt -y install \
+          bats \
+          pngquant \
+          zopfli \
+          bc \
+          file
+
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Run bats unit tests
+      run: bats tests/*.bats
