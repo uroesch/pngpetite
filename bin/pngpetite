@@ -22,7 +22,7 @@ set -o pipefail
 # Globals
 # -----------------------------------------------------------------------------
 
-declare -r VERSION=0.3.1
+declare -r VERSION=0.3.2
 declare -r SCRIPT=${0##*/}
 declare -r SUFFIX="-${SCRIPT}.png"
 declare -r S1_SUFFIX="-${RANDOM}"
@@ -107,7 +107,7 @@ function parse_options() {
     -S|--no-stats) PRINT_STATS=false;;
     -V|--version)  print_version;;
     -*)            usage 12;;
-    *)             FILES=( "${FILES[@]-}" "${1}" )
+    *)             FILES+=( "${1}" )
     esac
     shift
   done
@@ -350,4 +350,4 @@ parse_options "${@}"
 evaluate_opts
 check_dependencies
 create_scaffold
-process_images "${FILES[@]:1}"
+process_images "${FILES[@]}"
