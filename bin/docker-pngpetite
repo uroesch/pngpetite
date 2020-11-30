@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+docker run \
+  --rm \
+  --tty \
+  --volume "$(pwd)":"$(pwd)" \
+  --workdir "$(pwd)" \
+  uroesch/pngpetite \
+  "$@"
