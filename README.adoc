@@ -31,6 +31,7 @@ differences the name has also been changed.
 [[pngpetite-usage]]
 === Usage
 
+[source,shell]
 ----
 Usage:
   pngpetite <options> <png-image> ...
@@ -90,10 +91,33 @@ Original (KB)   Stage1 (KB)    Final (KB)    Saved (KB)       Saved %    Time (s
 
 <<<
 
+[[docker-usage]]
+=== Docker usage
+
+[source,shell]
+----
+docker run \
+  --rm \
+  --tty \
+  --volume "$(pwd)":"$(pwd)" \
+  --workdir "$(pwd)" \
+  uroesch/pngpetite <PNG image> [<PNG image> ...]
+----
+
+Or simply use the `docker-pngpetite` wrapper script found in the `bin`
+directory.
+
+[source,shell]
+----
+bin/docker-pngpetite <PNG image> [<PNG image> ...]
+----
+
+<<<
+
 [[visual-examples]]
 == Visual Examples
 
-`pngpetite` is not suited for every type of picture. Especially photographic images 
+`pngpetite` is not suited for every type of picture. Especially photographic images
 may not yield high savings.
 To visualize the differences between the original image and the optimzed one,
 google's https://github.com/google/butteraugli[`butteraugli`] tools is used.
@@ -121,7 +145,7 @@ Noticeable is that at stage 1 `pngquant` shrinks the image by 62% in older versi
 photograpic pictures did only yield a reduction in size.
 At stage 2 `zopflipng` is able to squeeze another 4% from its compression algorithm.
 Comparing the two images with `butteraugli` shows a large differences especially in
-the sunset section of the image. 
+the sunset section of the image.
 
 ===== Original
 image::samples/original/beach.png[Beach sunset original]
