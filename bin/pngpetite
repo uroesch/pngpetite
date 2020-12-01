@@ -17,12 +17,13 @@
 set -o nounset
 set -o errexit
 set -o pipefail
+set -o monitor   # For docker
 
 # -----------------------------------------------------------------------------
 # Globals
 # -----------------------------------------------------------------------------
 
-declare -r VERSION=0.3.2
+declare -r VERSION=0.4.0
 declare -r SCRIPT=${0##*/}
 declare -r SUFFIX="-${SCRIPT}.png"
 declare -r S1_SUFFIX="-${RANDOM}"
@@ -30,8 +31,7 @@ declare -r S2_SUFFIX="-${RANDOM}"
 declare -r PNGQUANT_OPTS="--quality=80-98 --skip-if-larger --force"
 declare -r ZOPFLI_OPTS='-m -y --lossy_8bit --lossy_transparent'
 declare -r STAT_OPTS='--printf %s'
-declare -r COLUMN_WIDTH=13
-declare -r LINE=$(eval printf -- "-%.0s" {1..${COLUMN_WIDTH}})
+declare -g WITH_BUTTERAUGLI=false
 declare -g HEADER_PRINTED=false
 declare -g REPLACE=false
 declare -g QUIET=false
@@ -45,13 +45,14 @@ declare -a FIELDS_HEADER=(
   "Saved (KB)"
   "Saved %"
   "Time (sec)"
+  "BA Score"
   "Image Name"
 )
 declare -a DEPENDENCIES=(
+  bc
+  file
   pngquant
   zopflipng
-  file
-  bc
 )
 
 # -----------------------------------------------------------------------------
@@ -65,6 +66,16 @@ function check_dependencies() {
       exit 64
     fi
   done
+}
+
+# -----------------------------------------------------------------------------
+
+function check_butteraugli() {
+  if ! which butteraugli >/dev/null 2>&1; then
+    unset FIELDS_HEADER[-2]
+  else
+    WITH_BUTTERAUGLI=true
+  fi
 }
 
 # -----------------------------------------------------------------------------
@@ -167,6 +178,7 @@ function spinner() {
 function inside_docker() {
   [[ -f /.dockerenv ]]
 }
+
 # -----------------------------------------------------------------------------
 
 function wait_for_file() {
@@ -204,7 +216,6 @@ function run_pngquant() {
     cp "${image}" "${output}"
 }
 
-
 # -----------------------------------------------------------------------------
 
 function run_zopflipng() {
@@ -212,6 +223,15 @@ function run_zopflipng() {
   local output="${input%${S1_SUFFIX}}${S2_SUFFIX}"
   zopflipng ${ZOPFLI_OPTS} "${input}" "${output}" >/dev/null &&
     rm "${input}"
+}
+
+# -----------------------------------------------------------------------------
+
+function run_butteraugli() {
+  local original="${1}"; shift;
+  local processed="${1}"; shift;
+  [[ ${WITH_BUTTERAUGLI} == false ]] && return 0 || :
+  butteraugli ${original} "${processed}"
 }
 
 # -----------------------------------------------------------------------------
@@ -268,13 +288,19 @@ function format() {
   local type=${1}; shift;
   local item=""
   case ${type} in
-  header) item="%${COLUMN_WIDTH}s";;
-  stats)  item="%${COLUMN_WIDTH}.3f";;
+  header) suffix='s';;
+  line)   suffix='';;
+  stats)  suffix=".3f";;
   esac
-  for _i in "${FIELDS_HEADER[@]:1}"; do
-    echo -n "${item} "
+  for field in "${FIELDS_HEADER[@]}"; do
+    if [[ ${field} == ${FIELDS_HEADER[-1]} ]]; then
+      [[ $type != line ]] && echo -n "%s\\n"
+      [[ $type == line ]] && echo "-------------------"
+      continue
+    fi
+    [[ ${type} != line ]] && echo -n "%${#field}${suffix} "
+    [[ $type == line ]] && echo -n "${field//?/-} "
   done
-  echo "%s\\n"
 }
 
 # -----------------------------------------------------------------------------
@@ -282,8 +308,7 @@ function format() {
 function print_header() {
   [[ ${HEADER_PRINTED} == true ]] && return
   printf "$(format header)" "${FIELDS_HEADER[@]}"
-  printf "$(format header)" \
-    $(for x in "${FIELDS_HEADER[@]}"; do echo "${LINE}"; done)
+  format line
   HEADER_PRINTED=true
 }
 
@@ -296,6 +321,7 @@ function print_stats() {
   local stage1_size="${1}"; shift;
   local final_size="${1}"; shift
   local time="${1}"; shift
+  local score="${1:-}"
   local saved_size="$(bc -l <<< "${pre_size} - ${final_size}")"
   local saved_percent="$(bc -l <<< "100 * ${saved_size} / ${pre_size}")"
   print_header
@@ -306,6 +332,7 @@ function print_stats() {
     "$(calc_size ${saved_size})" \
     "${saved_percent}" \
     "${time}" \
+    ${score:-} \
     "${image}"
 }
 
@@ -335,10 +362,14 @@ function process_images() {
 
     # put final image into place and change permission if inside docker
     mv "${working_image}${S2_SUFFIX}" "${working_image}"
-    inside_docker && chown --reference="${image}" "${working_image}"
+    inside_docker && \
+      chown -R --reference="${image}" ${DEST_DIR%%/*} "${working_image}"
+
+    ## butteraugli section
+    score=$(run_butteraugli "${image}" "${working_image}")
 
     print_stats "${image}" "${pre_size}" "${stage1_size}" \
-      "${final_size}" "${time}"
+      "${final_size}" "${time}" "${score}"
     replace_file "${image}" "${working_image}"
   done
 }
@@ -349,5 +380,6 @@ function process_images() {
 parse_options "${@}"
 evaluate_opts
 check_dependencies
+check_butteraugli
 create_scaffold
 process_images "${FILES[@]}"

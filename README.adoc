@@ -24,6 +24,7 @@ differences the name has also been changed.
 * file
 * https://pngquant.org/[pngquant]
 * https://github.com/google/zopfli[zopflipng]
+* https://github.com/google/butteraugli[butteraugli] (optional)
 
 [[pngpetite-usage]]
 == Usage
@@ -215,6 +216,13 @@ image::samples/original/shinkansen-n700.png[Shinkansen N700 original]
 image::samples/pngpetite/shinkansen-n700.png[Shinkansen N700 optimized by pngpetite 56.654% smaller]
 ===== Heatmap
 image::samples/heatmap/shinkansen-n700.png[Shinkansen N700 heatmap - differences in the undercarriage]
+
+<<<
+
+[[known-issues]]
+== Known issues
+
+* Under Docker the time statistics are not yet working correctly
 
 <<<
 

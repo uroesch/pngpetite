@@ -15,6 +15,8 @@ differences the name has also been changed.
 
   - [zopflipng](https://github.com/google/zopfli)
 
+  - [butteraugli](https://github.com/google/butteraugli) (optional)
+
 ## Usage
 
 ``` shell
@@ -199,6 +201,10 @@ Large savings with a few diffrences in the under carriages as the heatmap shows.
 ##### Heatmap
 
 ![Shinkansen N700 heatmap - differences in the undercarriage](samples/heatmap/shinkansen-n700.png)
+
+## Known issues
+
+  - Under Docker the time statistics are not yet working correctly
 
 ## Attribution
 
