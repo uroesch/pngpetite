@@ -2,10 +2,9 @@
 DOCKER_IMAGE_NAME ?= pngpetite
 DOCKERHUB_USERNAME ?= uroesch
 CURRENT_GIT_REF ?= $(shell git rev-parse --abbrev-ref HEAD) # Default to current branch
-DOCKER_IMAGE_TAG ?= $(shell echo $(CURRENT_GIT_REF) | sed 's|.*/.*[^-]-|v|g' )
+DOCKER_IMAGE_TAG ?= $(shell echo $(CURRENT_GIT_REF) | sed 's|.*/.*[^-]-|v|g')
 DOCKER_IMAGE_NAME_TO_TEST ?= $(DOCKERHUB_USERNAME)/$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)
 PNGPETITE_VERSION ?= 0.3.2
-PANDOC_VERSION ?= 2.10.1
 
 export \
   DOCKER_IMAGE_NAME_TO_TEST \
