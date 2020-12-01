@@ -1,4 +1,4 @@
-= {Title}
+= pngpetite
 :title:     pngpetite
 :author:    Urs Roesch
 :firstname: Urs
@@ -18,18 +18,15 @@ https://github.com/chrissimpkins/Crunch[Crush] by Christopher Simpkins and has
 been adapted to Linux by refactoring it. As the code base shows significant
 differences the name has also been changed.
 
-[[pngpetite]]
-== pngpetite
-
 [[pngpetite-prerequisites]]
-=== Prerequisites
+== Prerequisites
 * bc
 * file
 * https://pngquant.org/[pngquant]
 * https://github.com/google/zopfli[zopflipng]
 
 [[pngpetite-usage]]
-=== Usage
+== Usage
 
 [source,shell]
 ----
@@ -52,7 +49,7 @@ Description:
 ----
 
 [[pngpetite-examples]]
-=== Examples
+== Examples
 
 .Default usage. Yields `happy-sun-pngpetite.png`
 ----
@@ -92,7 +89,7 @@ Original (KB)   Stage1 (KB)    Final (KB)    Saved (KB)       Saved %    Time (s
 <<<
 
 [[docker-usage]]
-=== Docker usage
+== Docker usage
 
 [source,shell]
 ----

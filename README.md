@@ -1,13 +1,11 @@
-# {Title}
+# pngpetite
 
 A script to reduce the size of PNG images significantly. The code is based on
 [Crush](https://github.com/chrissimpkins/Crunch) by Christopher Simpkins and has
 been adapted to Linux by refactoring it. As the code base shows significant
 differences the name has also been changed.
 
-## pngpetite
-
-### Prerequisites
+## Prerequisites
 
   - bc
 
@@ -17,7 +15,7 @@ differences the name has also been changed.
 
   - [zopflipng](https://github.com/google/zopfli)
 
-### Usage
+## Usage
 
 ``` shell
 Usage:
@@ -38,7 +36,7 @@ Description:
   Built with pngquant and zopflipng optimizers
 ```
 
-### Examples
+## Examples
 
 **Default usage. Yields `happy-sun-pngpetite.png`.**
 
@@ -70,7 +68,7 @@ Description:
            25.639        16.186        13.857        11.781        45.951        22.197  original/happy-sun.png
            54.101        29.885        27.244        26.856        49.642         8.097  original/shinkansen-n700.png
 
-### Docker usage
+## Docker usage
 
 ``` shell
 docker run \
