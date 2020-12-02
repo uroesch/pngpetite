@@ -3,18 +3,18 @@ FROM alpine:edge
 LABEL MAINTAINERS="Urs Roesch <github@bun.ch>"
 
 ARG pngpetite_version
-ENV VERSION=${pngpetite_version:-v0.3.2}
+ENV VERSION=${pngpetite_version:-v0.4.0}
 
 # Installing package required for the runtime of
 # any of the asciidoctor-* functionnalities
 RUN \
   apk add --no-cache \
-    coreutils \
     bash \
-    pngquant \
-    zopfli \
+    bc \
+    coreutils \
     file \
-    bc
+    pngquant \
+    zopfli
 
 COPY bin/pngpetite /bin/
 
