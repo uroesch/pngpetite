@@ -17,13 +17,12 @@
 set -o nounset
 set -o errexit
 set -o pipefail
-set -o monitor   # For docker
 
 # -----------------------------------------------------------------------------
 # Globals
 # -----------------------------------------------------------------------------
 
-declare -r VERSION=0.4.0
+declare -r VERSION=0.4.1
 declare -r SCRIPT=${0##*/}
 declare -r SUFFIX="-${SCRIPT}.png"
 declare -r S1_SUFFIX="-${RANDOM}"
@@ -181,20 +180,8 @@ function inside_docker() {
 
 # -----------------------------------------------------------------------------
 
-function wait_for_file() {
-  local file="${1}"
-  inside_docker || return 0
-  # On docker the file write is a bit lagging hence the loop
-  while [[ ! -f ${file} ]]; do
-    sleep 0.1
-  done
-}
-
-# -----------------------------------------------------------------------------
-
 function get_size() {
   local file="${1}"
-  wait_for_file "${file}"
   stat ${STAT_OPTS} "${file}" 2>/dev/null || echo "N/A"
 }
 
@@ -284,6 +271,16 @@ function create_scaffold() {
 
 # -----------------------------------------------------------------------------
 
+function change_file_owner() {
+  local image="${1}"; shift
+  local working_image="${1}"; shift
+  inside_docker || return 0
+  [[ -n ${DEST_DIR} ]] && chown -R --reference="${image}" ${DEST_DIR%%/*}
+  chown -R --reference="${image}" "${working_image}"
+}
+
+# -----------------------------------------------------------------------------
+
 function format() {
   local type=${1}; shift;
   local item=""
@@ -362,8 +359,7 @@ function process_images() {
 
     # put final image into place and change permission if inside docker
     mv "${working_image}${S2_SUFFIX}" "${working_image}"
-    inside_docker && \
-      chown -R --reference="${image}" ${DEST_DIR%%/*} "${working_image}"
+    change_file_owner "${image}" "${working_image}"
 
     ## butteraugli section
     score=$(run_butteraugli "${image}" "${working_image}")
