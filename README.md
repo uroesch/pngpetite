@@ -78,6 +78,7 @@ docker run \
   --tty \
   --volume "$(pwd)":"$(pwd)" \
   --workdir "$(pwd)" \
+  --user "$(id -u):$(id -g)" \
   uroesch/pngpetite <PNG image> [<PNG image> ...]
 ```
 
