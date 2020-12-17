@@ -22,7 +22,7 @@ set -o pipefail
 # Globals
 # -----------------------------------------------------------------------------
 
-declare -r VERSION=0.4.1
+declare -r VERSION=0.4.2
 declare -r SCRIPT=${0##*/}
 declare -r SUFFIX="-${SCRIPT}.png"
 declare -r S1_SUFFIX="-${RANDOM}"
@@ -174,12 +174,6 @@ function spinner() {
 
 # -----------------------------------------------------------------------------
 
-function inside_docker() {
-  [[ -f /.dockerenv ]]
-}
-
-# -----------------------------------------------------------------------------
-
 function get_size() {
   local file="${1}"
   stat ${STAT_OPTS} "${file}" 2>/dev/null || echo "N/A"
@@ -271,16 +265,6 @@ function create_scaffold() {
 
 # -----------------------------------------------------------------------------
 
-function change_file_owner() {
-  local image="${1}"; shift
-  local working_image="${1}"; shift
-  inside_docker || return 0
-  [[ -n ${DEST_DIR} ]] && chown -R --reference="${image}" ${DEST_DIR%%/*}
-  chown -R --reference="${image}" "${working_image}"
-}
-
-# -----------------------------------------------------------------------------
-
 function format() {
   local type=${1}; shift;
   local item=""
@@ -357,9 +341,8 @@ function process_images() {
     # get the post compression size of the image file
     final_size=$(get_size "${working_image}${S2_SUFFIX}")
 
-    # put final image into place and change permission if inside docker
+    # put final image into place
     mv "${working_image}${S2_SUFFIX}" "${working_image}"
-    change_file_owner "${image}" "${working_image}"
 
     ## butteraugli section
     score=$(run_butteraugli "${image}" "${working_image}")
