@@ -93,7 +93,7 @@ bin/docker-pngpetite <PNG image> [<PNG image> ...]
 
 `pngpetite` is not suited for every type of picture. Especially photographic images
 may not yield high savings.
-To visualize the differences between the original image and the optimzed one,
+To visualize the differences between the original image and the optimized one,
 google’s [`butteraugli`](https://github.com/google/butteraugli) tools is used.
 
 <div class="note">
@@ -116,7 +116,7 @@ Your milage may vary.
 Processing Results
 
 Noticeable is that at stage 1 `pngquant` shrinks the image by 62% in older versions
-photograpic pictures did only yield a reduction in size.
+photographic pictures did only yield a reduction in size.
 At stage 2 `zopflipng` is able to squeeze another 4% from its compression algorithm.
 Comparing the two images with `butteraugli` shows a large differences especially in
 the sunset section of the image.
@@ -142,7 +142,7 @@ the sunset section of the image.
 Processing Results
 
 The heatmap shows clearly where the biggest differences occur during the processing.
-Notable are they eyes and the background. The fur is very similar to the orignial image.
+Notable are they eyes and the background. The fur is very similar to the originial image.
 
 ##### Original
 
@@ -154,7 +154,7 @@ Notable are they eyes and the background. The fur is very similar to the orignia
 
 ##### Heatmap
 
-![Grey cat heatmap - differences expecially in the eye region](samples/heatmap/cat.png)
+![Grey cat heatmap - differences especially in the eye region](samples/heatmap/cat.png)
 
 ### Illustrations
 
@@ -179,7 +179,7 @@ a few areas in the face of the sun.
 
 ##### Heatmap
 
-![Happy sun heatmap - differences arround the face](samples/heatmap/happy-sun.png)
+![Happy sun heatmap - differences around the face](samples/heatmap/happy-sun.png)
 
 #### Shinkansen N700
 
@@ -189,7 +189,7 @@ a few areas in the face of the sun.
 
 Processing Results
 
-Large savings with a few diffrences in the under carriages as the heatmap shows.
+Large savings with a few differences in the under carriages as the heatmap shows.
 
 ##### Original
 
