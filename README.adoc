@@ -118,7 +118,7 @@ bin/docker-pngpetite <PNG image> [<PNG image> ...]
 
 `pngpetite` is not suited for every type of picture. Especially photographic images
 may not yield high savings.
-To visualize the differences between the original image and the optimzed one,
+To visualize the differences between the original image and the optimized one,
 google's https://github.com/google/butteraugli[`butteraugli`] tools is used.
 
 [NOTE]
@@ -141,7 +141,7 @@ Your milage may vary.
 |===
 
 Noticeable is that at stage 1 `pngquant` shrinks the image by 62% in older versions
-photograpic pictures did only yield a reduction in size.
+photographic pictures did only yield a reduction in size.
 At stage 2 `zopflipng` is able to squeeze another 4% from its compression algorithm.
 Comparing the two images with `butteraugli` shows a large differences especially in
 the sunset section of the image.
@@ -164,14 +164,14 @@ image::samples/heatmap/beach.png[Beach sunset heatmap - no differences]
 |===
 
 The heatmap shows clearly where the biggest differences occur during the processing.
-Notable are they eyes and the background. The fur is very similar to the orignial image.
+Notable are they eyes and the background. The fur is very similar to the originial image.
 
 ===== Original
 image::samples/original/cat.png[Grey cat original]
 ===== Optimized
 image::samples/pngpetite/cat.png[Grey cat optimized by pngpetite 66.145% smaller]
 ===== Heatmap
-image::samples/heatmap/cat.png[Grey cat heatmap - differences expecially in the eye region]
+image::samples/heatmap/cat.png[Grey cat heatmap - differences especially in the eye region]
 
 <<<
 
@@ -196,7 +196,7 @@ image::samples/original/happy-sun.png[Happy sun original]
 ===== Optimized
 image::samples/pngpetite/happy-sun.png[Happy sun optimized by pngpetite 48.279% smaller]
 ===== Heatmap
-image::samples/heatmap/happy-sun.png[Happy sun heatmap - differences arround the face]
+image::samples/heatmap/happy-sun.png[Happy sun heatmap - differences around the face]
 
 
 [[visual-examples-illustrations-shinkansen]]
@@ -209,7 +209,7 @@ image::samples/heatmap/happy-sun.png[Happy sun heatmap - differences arround the
 |        52.336 |      24.226 |      22.686 |      29.650 |  56.654 |          1.674651
 |===
 
-Large savings with a few diffrences in the under carriages as the heatmap shows.
+Large savings with a few differences in the under carriages as the heatmap shows.
 
 ===== Original
 image::samples/original/shinkansen-n700.png[Shinkansen N700 original]
