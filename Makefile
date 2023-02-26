@@ -1,19 +1,25 @@
 
-DOCKER_IMAGE_NAME ?= pngpetite
-DOCKERHUB_USERNAME ?= uroesch
-CURRENT_GIT_REF ?= $(shell git rev-parse --abbrev-ref HEAD) # Default to current branch
-DOCKER_IMAGE_TAG ?= $(shell echo $(CURRENT_GIT_REF) | sed 's|.*/.*[^-]-|v|g')
+DOCKER_IMAGE_NAME         ?= pngpetite
+DOCKERHUB_USERNAME        ?= uroesch
+CURRENT_GIT_REF           ?= $(shell git rev-parse --abbrev-ref HEAD) # Default to current branch
+DOCKER_IMAGE_TAG          ?= $(shell echo $(CURRENT_GIT_REF) | sed 's|.*/.*[^-]-|v|g')
 DOCKER_IMAGE_NAME_TO_TEST ?= $(DOCKERHUB_USERNAME)/$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)
-PNGPETITE_VERSION ?= 0.4.2
+PNGPETITE_VERSION         ?= 0.4.2
 
 export \
   DOCKER_IMAGE_NAME_TO_TEST \
   PNGPETITE_VERSION 
 
-all: build test README.md
+all: build test README.md push
+
+push-only: 
+	docker push $(DOCKER_IMAGE_NAME_TO_TEST)
+
+push: build push-only
 
 build:
 	docker build \
+	--pull \
 		--tag="$(DOCKER_IMAGE_NAME_TO_TEST)" \
 		--file=Dockerfile \
 		$(CURDIR)/
@@ -30,4 +36,7 @@ README.md:
 	asciidoctor -b docbook -a leveloffset=+1 -o - README.adoc | \
 		pandoc --atx-headers --wrap=preserve -t gfm -f docbook - > README.md
 
-.PHONY: all build test shell deploy clean README.md
+.PHONY: all push build test shell deploy clean README.md
+
+
+# vim: shiftwidth=2 tabstop=2 noexpandtab :
