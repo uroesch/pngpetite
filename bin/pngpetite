@@ -22,7 +22,7 @@ set -o pipefail
 # Globals
 # -----------------------------------------------------------------------------
 
-declare -r VERSION=0.4.2
+declare -r VERSION=0.4.3
 declare -r SCRIPT=${0##*/}
 declare -r SUFFIX="-${SCRIPT}.png"
 declare -r S1_SUFFIX="-${RANDOM}"
@@ -30,12 +30,12 @@ declare -r S2_SUFFIX="-${RANDOM}"
 declare -r PNGQUANT_OPTS="--quality=80-98 --skip-if-larger --force"
 declare -r ZOPFLI_OPTS='-m -y --lossy_8bit --lossy_transparent'
 declare -r STAT_OPTS='--printf %s'
-declare -g WITH_BUTTERAUGLI=false
-declare -g HEADER_PRINTED=false
-declare -g REPLACE=false
-declare -g QUIET=false
-declare -g PRINT_STATS=true
-declare -g DEST_DIR=""
+declare -- WITH_BUTTERAUGLI=false
+declare -- HEADER_PRINTED=false
+declare -- REPLACE=false
+declare -- QUIET=false
+declare -- PRINT_STATS=true
+declare -- DEST_DIR=""
 declare -a FILES=()
 declare -a FIELDS_HEADER=(
   "Original (KB)"
@@ -71,7 +71,8 @@ function check_dependencies() {
 
 function check_butteraugli() {
   if ! which butteraugli >/dev/null 2>&1; then
-    unset FIELDS_HEADER[-2]
+    # this wordy monster is for bash 4.0, 4.1 and 4.2 compatibility
+    unset FIELDS_HEADER[$(( ${#FIELDS_HEADER[@]} - 2 ))]
   else
     WITH_BUTTERAUGLI=true
   fi

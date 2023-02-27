@@ -1,0 +1,60 @@
+# -----------------------------------------------------------------------------
+# Verify bash compatibility
+# Author: Urs Roesch https://github.com/uroesch
+# Version: 0.2.0
+# -----------------------------------------------------------------------------
+name: bash-compatibility
+
+on:
+  push:
+    branches:
+    - workflow/*
+  pull_request:
+    branches:
+    - master
+    - main
+
+jobs:
+  bash-compatibility:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    container:
+      image: bash:${{ matrix.bash }}
+    strategy:
+      fail-fast: false
+      matrix:
+        bash:
+          - '4.0'
+          - '4.1'
+          - '4.2'
+          - '4.3'
+          - '4.4'
+          - '5.0'
+          - '5.1'
+          - '5.2'
+
+    steps:
+    - name: Install apk dependencies
+      shell: bash
+      run: |
+        apk add \
+          bats \
+          bc \
+          coreutils \
+          file \
+          git \
+          git-lfs \
+          pngquant \
+          procps \
+          zopfli
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        lfs: true
+
+    - name: Check bash compatibilty
+      shell: bash
+      run: |
+        shopt -s extglob 
+        bats tests/!(docker).bats 
