@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 # Bats unit test for shell scripts
 # Author: Urs Roesch https://github.com/uroesch
-# Version: 0.1.0
+# Version: 0.2.0
 # -----------------------------------------------------------------------------
 name: bats-unit-tests
 
@@ -22,6 +22,7 @@ jobs:
       fail-fast: true
       matrix:
         os:
+        - ubuntu-22.04
         - ubuntu-20.04
         - ubuntu-18.04
 
@@ -36,7 +37,7 @@ jobs:
           file
 
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Run bats unit tests
       run: bats tests/*.bats
